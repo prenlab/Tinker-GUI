@@ -1,0 +1,10 @@
+box:
+  size: 77.0
+  type: cube
+ions:
+  negative: CL
+  positive: NA
+output_prefix: user_protein_final
+pdb_file: user_protein.pdb
+prm_file: amoeba.prm
+salt_concentration: 0.45
