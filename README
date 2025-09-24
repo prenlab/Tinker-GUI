@@ -33,6 +33,18 @@ Run the automation script with optional command-line arguments:
 
 This will update the configuration and save it to `userConfig.YAML`.
 
+This project streamlines the setup of biomolecular systems for molecular dynamics (MD) simulations using the Tinker software suite. It automates the process of managing user inputs and configuration files, making simulation preparation more accessible and less error-prone.
+
+Key Information/Process Information
+---------------
+- The workflow begins with a cleaned molecular structure (e.g., a protein from the PDB) and ends with a fully solvated, neutralized system ready for simulation.
+- Default simulation parameters are loaded from `templateConfig.YAML`.
+- User-specific overrides are read from `userConfig.YAML` and command-line arguments, with CLI arguments taking the highest priority.
+- The merged configuration is saved to `userConfig.YAML` for reproducibility and future use.
+- The configuration files include important parameters such as box size, ion types, salt concentration, and file names for input/output.
+- The automation supports standard Tinker preparation steps, including structure conversion, keyfile creation, box building, solvation, ion addition, and final inspection.
+- The parameter file (e.g., amoebabio18.prm) is required for force field settings and correct ion type numbers.
+
 Logging
 -------
 The program uses Python's logging module to record:
@@ -40,11 +52,3 @@ The program uses Python's logging module to record:
 - Loading and saving of YAML files
 - Completion of user config parsing
 - The final active configuration
-
-Purpose
--------
-This tool is designed to make molecular simulation with Tinker more accessible by automating and validating user inputs, reducing manual editing of configuration files, and providing clear feedback through logging.
-
-Contact
--------
-For questions or contributions, please contact the project maintainer.
