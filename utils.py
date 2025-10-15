@@ -1,9 +1,10 @@
 import argparse
 import yaml
 import sys
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 import os
 import logging
+import subprocess
 
 
 class ConfigManager:
@@ -77,6 +78,10 @@ def main():
     manager.logger.info(manager.all())
     manager.logger.info("YAML dump of configuration:")
     manager.logger.info('\n' + yaml.dump(manager.all(), default_flow_style=False))
+    
+
+from tinker_runner import TinkerRunner
+
 
 if __name__ == "__main__":
     main()
