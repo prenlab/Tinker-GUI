@@ -1,6 +1,7 @@
 
 # Ignore VS Code workspace file(s)
 *.code-workspace
+*.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
