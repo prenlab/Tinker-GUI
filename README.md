@@ -20,10 +20,11 @@ This project automates the configuration process for Tinker molecular simulation
 
 ### Ongoing Development
 1. Improve the CLI module;
-1. Conversion of Tinker ARC back to PDB;
 1. GUI;
+1. Python-based Conversion of Tinker XYZ/ARC from/to PDB;
+1. Web Interface;
 1. Support systems with membranes;
-1. Autofix minor formating errors in input PDB file;
+1. Detection and repair of minor formating errors in input PDB file;
 
 
 ## Getting Started
