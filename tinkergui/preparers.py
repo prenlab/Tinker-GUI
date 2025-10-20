@@ -153,7 +153,7 @@ class SolventBoxPreparer(BasePreparer):
         """Prepare the solvent box: generate solvent molecules, pack the box, etc."""
         if self.solvent_name.lower() == "water":
             assert max(self.box_size) <= 120, "Predefined water box is only as big as 120 Å."
-            assert self.box_type.lower() == "cube", "Predefined water box is only cubic."
+            assert self.box_type.lower() == "cuboid", "Predefined water box is only cubic."
             water_O_type = self.atom_type_finder.find_atom_type(description="Water O")
             water_H_type = self.atom_type_finder.find_atom_type(description="Water H")
             tinker = TinkerRunner(wd=self.wd, tinker_path=config.tinker_path)
@@ -246,8 +246,8 @@ class SystemPreparer(BasePreparer):
         self.key_file.set_key("a-axis", str(self.box_size[0]))
         self.key_file.set_key("b-axis", str(self.box_size[1]))
         self.key_file.set_key("c-axis", str(self.box_size[2]))
-        if config.box.type.lower() != "cube":
-            raise NotImplementedError(f"Box type {config.box.type} not yet implemented for box info in key.")
+        if config.box.type.lower() != "cuboid":
+            raise NotImplementedError(f"Box type {config.box.type} not yet implemented for box info in key. Currently only `cuboid` is supported.")
         # add ions
         self.txyz_file = self.neutralize()
         self.txyz_file = self.add_salts()
@@ -333,7 +333,7 @@ class SystemPreparer(BasePreparer):
     def add_salts(self):
         """Add ions to neutralize the system and set salt concentration."""
         assert os.path.exists(self.txyz_file), "This operation cannot be done without a Tinker XYZ file."
-        if config.box.type.lower() == "cube":
+        if config.box.type.lower() == "cuboid":
             box_volume = self.box_size[0] * self.box_size[1] * self.box_size[2]
         else:
             raise NotImplementedError(f"Box type {config.box.type} not yet implemented for salt addition.")

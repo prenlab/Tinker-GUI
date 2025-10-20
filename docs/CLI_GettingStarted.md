@@ -82,7 +82,7 @@ Prepare Tinker XYZ and KEY file for MD simulations from PDB files.
             - 0.15
             - 0.15
     box:
-        type: cube
+        type: cuboid
         buffer: 12.0
     ```
     You can then modify it based on your case then run the program this way:

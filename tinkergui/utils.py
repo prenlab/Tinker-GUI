@@ -69,7 +69,7 @@ class ConfigManager:
         {'name': 'ions.salts.names', 'default': ['K+', 'Cl-'], 'type': list, 'help': 'List of salt names.'},
         {'name': 'ions.salts.concentrations', 'default': [0.15, 0.15], 'type': list, 'help': 'List of respective concentrations in mol/L.'},
 
-        {'name': 'box.type', 'default': 'cube', 'type': str, 'help': 'Box type.'},
+        {'name': 'box.type', 'default': 'cuboid', 'type': str, 'help': 'Box type.'},
         {'name': 'box.buffer', 'default': 12.0, 'type': float, 'help': 'Box buffer size in Å.'},
     ]
 
