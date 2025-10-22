@@ -225,7 +225,8 @@ class SystemPreparer(BasePreparer):
         if len(self.components) > 1:
             raise NotImplementedError("Combining multiple components is not yet implemented.")
         else:
-            shutil.copy(self.components[0].txyz_file, self.txyz_file)
+            shutil.copy(os.path.join(self.wd, os.path.basename(self.components[0].txyz_file)), 
+                        os.path.join(self.wd, os.path.basename(self.txyz_file)))
         logger.info(f"Combined solutes and then obtained the system Tinker XYZ: {self.txyz_file}.")
 
         # align to inertial frame
