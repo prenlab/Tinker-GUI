@@ -142,6 +142,7 @@ class SolventBoxPreparer(BasePreparer):
         self.solvent_name = solvent_name
         self.box_type = box_type
         self.box_size = box_size
+        self.box_cutting_buffer = 2  # Å
         if self.solvent_name.lower() == "water":
             raw_structure_file = os.path.join(os.path.dirname(__file__), "data", "water_cube_120A.xyz")
         else: 
@@ -154,6 +155,11 @@ class SolventBoxPreparer(BasePreparer):
         if self.solvent_name.lower() == "water":
             assert max(self.box_size) <= 120, "Predefined water box is only as big as 120 Å."
             assert self.box_type.lower() == "cuboid", "Predefined water box is only cubic."
+            cut_size_x, cut_size_y, cut_size_z = (
+                self.box_size[0] - self.box_cutting_buffer, 
+                self.box_size[1] - self.box_cutting_buffer, 
+                self.box_size[2] - self.box_cutting_buffer
+            )
             water_O_type = self.atom_type_finder.find_atom_type(description="Water O")
             water_H_type = self.atom_type_finder.find_atom_type(description="Water H")
             tinker = TinkerRunner(wd=self.wd, tinker_path=config.tinker_path)
@@ -176,7 +182,7 @@ class SolventBoxPreparer(BasePreparer):
                     f"{option_nums[0]}\n1,{water_O_type}\n"
                     f"{option_nums[0]}\n2,{water_H_type}\n"
                     f"{option_nums[1]}\n"
-                    f"{option_nums[2]}\n{self.box_size[0]},{self.box_size[1]},{self.box_size[2]}\n"
+                    f"{option_nums[2]}\n{cut_size_x},{cut_size_y},{cut_size_z}\n"
                     "\n"
                 ),
                 envs='',
