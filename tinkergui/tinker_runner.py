@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class TinkerRunner:
     """Python wrapper to call tinker cmdline program
     """
-    def __init__(self, wd='.', tinker_path="/path/to/tinker/bin/", timeout=300):
+    def __init__(self, wd='.', tinker_path="/path/to/tinker/bin/", timeout=3000):
         self.wd = wd
         self.tinker_path = tinker_path
         self.timeout = timeout
