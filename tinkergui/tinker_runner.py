@@ -13,7 +13,7 @@ class TinkerRunner:
         self.tinker_path = tinker_path
         self.timeout = timeout
 
-    def call(self, program, cmd_args='', inter_inps='', envs='', pre_cmds='', expected_outfiles=(), custom_outfile_suffix=''):
+    def call(self, program, cmd_args='', inter_inps='', envs='', pre_cmds='', expected_outfiles=(), custom_outfile_suffix='', verbose=True):
         """example args:
         program='analyze'
         cmd_args='xxx.xyz -k xxxx.key' or 'xxx.xyz -k xxxx.key EP'
@@ -55,10 +55,10 @@ class TinkerRunner:
         finally:
             if proc:
                 proc.kill()  # this is important to cleanup properly, e.g., release memory.
-
-        logger.info(f"Called Tinker: {cmd} ; Interactive Inputs Used: '" + inter_inps.replace('\n', '\\n') + "'")
-        if outs:
-            logger.info(f"Output: \n{outs}")
+        if verbose:
+            logger.info(f"Called Tinker: {cmd} ; Interactive Inputs Used: '" + inter_inps.replace('\n', '\\n') + "'")
+            if outs:
+                logger.info(f"Output: \n{outs}")
         if errs:
             logger.error(f"Errors: \n{errs}")
             logger.error("Termination due to failed Tinker call.")

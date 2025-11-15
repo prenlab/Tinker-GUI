@@ -19,7 +19,6 @@ if __name__ == "__main__":
 
     sysprep = SystemPreparer(working_directory=temp_dir)
     sysprep.prepare()
-    final_txyz = sysprep.txyz_file
-    shutil.copy(final_txyz, os.path.join(os.getcwd(), f"{config.output_prefix}_final.xyz"))
-    sysprep.key_file.save_key_file(os.path.join(os.getcwd(), f"{config.output_prefix}_final.key"))
-    logger.info(f"Final prepared files saved to {os.getcwd()} with prefix {config.output_prefix}_final .")
+    shutil.copy(sysprep.txyz_file, os.path.join(os.getcwd(), f"{config.output_prefix}_final.xyz"))
+    shutil.copy(sysprep.key_file.latest_path, os.path.join(os.getcwd(), f"{config.output_prefix}_final.key"))
+    logger.info(f"Please check the system information above. Final prepared files saved to {os.getcwd()} with prefix {config.output_prefix}_final .")

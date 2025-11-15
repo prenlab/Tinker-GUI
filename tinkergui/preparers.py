@@ -52,6 +52,7 @@ class BasePreparer:
             inter_inps='\n\n',
             envs='',
             pre_cmds='',
+            verbose=False,
         )
         option_num = re.findall(r"\((\d+)\) Translate and Rotate to Inertial Frame", outs)[0]
         outs = tinker.call(
@@ -81,9 +82,10 @@ class BasePreparer:
         charge = int(float(charge))
         return charge
 
-    def get_bounding_box_size(self, buffer: float = 12.0):
+    def get_bounding_box_size(self, buffer: float = 15.0, box_type: str = "rectangular") -> tuple:
         """Calculate and return the minimum bounding box dimensions with optional padding buffer."""
         assert os.path.exists(self.txyz_file), f"This operation cannot be done without a Tinker XYZ file. {self.txyz_file} not found."
+        assert box_type.lower() in config.choices.box.type, f"Box type must be one of {config.choices.box.type}."
         with open(self.txyz_file) as f:
             lines = f.readlines()
         if "." in lines[1].strip().split()[1]:
@@ -97,7 +99,9 @@ class BasePreparer:
         x_size = math.ceil(max(xs) - min(xs) + 2 * buffer)
         y_size = math.ceil(max(ys) - min(ys) + 2 * buffer)
         z_size = math.ceil(max(zs) - min(zs) + 2 * buffer)
-        logger.info(f"Calculated bounding box size: ({x_size}, {y_size}, {z_size}) Å with buffer {buffer} Å.")
+        if box_type.lower() == "cubic":
+            max_size = max(x_size, y_size, z_size)
+            x_size = y_size = z_size = max_size
         return (x_size, y_size, z_size)
 
     def prepare(self):
@@ -154,7 +158,7 @@ class SolventBoxPreparer(BasePreparer):
         """Prepare the solvent box: generate solvent molecules, pack the box, etc."""
         if self.solvent_name.lower() == "water":
             assert max(self.box_size) <= 120, "Predefined water box is only as big as 120 Å."
-            assert self.box_type.lower() == "cuboid", "Predefined water box is only cubic."
+            assert self.box_type.lower() in config.choices.box.type, f"Predefined water box is only for {config.choices.box.type}."
             cut_size_x, cut_size_y, cut_size_z = (
                 self.box_size[0] - self.box_cutting_buffer, 
                 self.box_size[1] - self.box_cutting_buffer, 
@@ -169,6 +173,7 @@ class SolventBoxPreparer(BasePreparer):
                 inter_inps='\n\n',
                 envs='',
                 pre_cmds='',
+                verbose=False,
             )
             option_nums = [
                 re.findall(r"\((\d+)\) Replace Old Atom Type with a New Type", outs)[0],
@@ -240,7 +245,14 @@ class SystemPreparer(BasePreparer):
         logger.info("Aligned the system to its inertial frame.")
         
         # build solvent box
-        self.box_size = self.get_bounding_box_size(buffer=config.box.buffer)
+        # box.size takes precedence over box.buffer
+        if config.box.size and len(config.box.size) == 3:
+            self.box_size = config.box.size
+            logger.info(f"Using user-defined box size: {self.box_size} Å.")
+        else:
+            self.box_size = self.get_bounding_box_size(buffer=config.box.buffer, box_type=config.box.type)
+            logger.info(f"Calculated bounding box size: {self.box_size} Å with buffer {config.box.buffer} Å.")
+
         boxfile, self.solvent_atom_types = SolventBoxPreparer(
             working_directory=self.wd,
             solvent_name=config.solvent.name,
@@ -253,11 +265,35 @@ class SystemPreparer(BasePreparer):
         self.key_file.set_key("a-axis", str(self.box_size[0]))
         self.key_file.set_key("b-axis", str(self.box_size[1]))
         self.key_file.set_key("c-axis", str(self.box_size[2]))
-        if config.box.type.lower() != "cuboid":
-            raise NotImplementedError(f"Box type {config.box.type} not yet implemented for box info in key. Currently only `cuboid` is supported.")
+        if config.box.type.lower() not in config.choices.box.type:
+            raise NotImplementedError(f"Box type {config.box.type} not yet implemented for box info in key. Currently only {config.choices.box.type} is supported.")
         # add ions
         self.txyz_file = self.neutralize()
         self.txyz_file = self.add_salts()
+
+        # save the final key file
+        self.key_file.save_key_file(os.path.join(self.wd, f"{config.output_prefix}_final.key"))
+
+        # print out final info and final sanity check
+        logger.info("="*20 + " Final System Information: " + "="*20)
+        tinker = TinkerRunner(wd=self.wd, tinker_path=config.tinker_path)
+        outs = tinker.call(
+            program='analyze',
+            cmd_args=f"{os.path.basename(self.txyz_file)} -k {self.key_file.latest_path}",
+            inter_inps='GME\n',
+            envs='',
+            pre_cmds='',
+        )
+        # check system density for water solvent
+        density = None
+        for l in outs.splitlines():
+            if l.startswith(" System Density"):
+                density = float(l.strip().split()[-1])
+        if density is not None:
+            if config.solvent.name.lower() == "water":
+                expected_density = 1    # g/cm^3
+                if abs(density - expected_density) / expected_density > 0.2:
+                    logger.warning(f"System density {density} g/cm^3 deviates significantly from expected {expected_density} g/cm^3.")
 
     def soak_into_box(self, boxfile):
         """Soak the system into a solvent box."""
@@ -269,6 +305,7 @@ class SystemPreparer(BasePreparer):
             inter_inps='\n\n',
             envs='',
             pre_cmds='',
+            verbose=False,
         )
         option_num = re.findall(r"\((\d+)\) Soak Current Molecule in Box of Solvent", outs)[0]
         outs = tinker.call(
@@ -301,6 +338,7 @@ class SystemPreparer(BasePreparer):
             inter_inps='\n\n',
             envs='',
             pre_cmds='',
+            verbose=False,
         )
         option_num = re.findall(r"\((\d+)\) Place Monoatomic Ions around a Solute", outs)[0]
         outs = tinker.call(
@@ -325,12 +363,15 @@ class SystemPreparer(BasePreparer):
         if charge == 0:
             logger.info("The system is already neutral. No need to add counter ions.")
             return self.txyz_file
+        counter_ion = None
+        num_to_add = 0
         for ion in config.ions.neutralizers:
             ion_atom_type = self.atom_type_finder.find_atom_type(description=f"Ion {ion.strip('+-123').capitalize()}")
             ion_charge = self.atom_type_finder.find_atom_charge(atom_type=ion_atom_type)
             if ion_charge * charge < 0:
                 counter_ion = ion_atom_type
                 num_to_add = int(abs(charge / ion_charge))
+        assert counter_ion is not None, f"No suitable counter ion found in {config.ions.neutralizers} to neutralize the system."
 
         self.add_ions(counter_ion, num_to_add, suffix='_neutralized')
         new_txyz = os.path.join(self.wd, os.path.splitext(self.txyz_file)[0] + "_neutralized.xyz")
@@ -340,7 +381,7 @@ class SystemPreparer(BasePreparer):
     def add_salts(self):
         """Add ions to neutralize the system and set salt concentration."""
         assert os.path.exists(self.txyz_file), "This operation cannot be done without a Tinker XYZ file."
-        if config.box.type.lower() == "cuboid":
+        if config.box.type.lower() in config.choices.box.type:
             box_volume = self.box_size[0] * self.box_size[1] * self.box_size[2]
         else:
             raise NotImplementedError(f"Box type {config.box.type} not yet implemented for salt addition.")
@@ -351,7 +392,7 @@ class SystemPreparer(BasePreparer):
             if num_ions > 0:
                 self.add_ions(ion_atom_type, num_ions, suffix=f'_{ion}_added')
                 new_txyz = os.path.join(self.wd, os.path.splitext(self.txyz_file)[0] + f"_{ion}_added.xyz")
-                logger.info(f"Added {num_ions} of ion {ion} to the system: {new_txyz} .")
+                logger.info(f"Added {num_ions} {ion} ions to the system: {new_txyz} .")
                 self.txyz_file = new_txyz
         return self.txyz_file
 

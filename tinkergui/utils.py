@@ -8,6 +8,7 @@ import os
 import logging
 import subprocess
 from collections import OrderedDict
+from functools import reduce
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ class ConfigManager:
     It defines each parameter's name, default value, type, and help description.
     """
 
-    CONFIG_DEFINITION = [
+    CONFIG_DEFINITION = [ 
         {'name': 'tinker_path', 'default': '/path/to/tinker/bin', 'type': str, 'help': 'Path to the Tinker executables.'},
         {'name': 'amoeba_prm', 'default': '/path/to/amoeba.prm', 'type': str, 'help': 'Path to the AMOEBA parameter file.'},
         {'name': 'output_prefix', 'default': 'my_system', 'type': str, 'help': 'Prefix for output files.'},
@@ -69,8 +70,9 @@ class ConfigManager:
         {'name': 'ions.salts.names', 'default': ['K+', 'Cl-'], 'type': list, 'help': 'List of salt names.'},
         {'name': 'ions.salts.concentrations', 'default': [0.15, 0.15], 'type': list, 'help': 'List of respective concentrations in mol/L.'},
 
-        {'name': 'box.type', 'default': 'cuboid', 'type': str, 'help': 'Box type.'},
-        {'name': 'box.buffer', 'default': 12.0, 'type': float, 'help': 'Box buffer size in Å.'},
+        {'name': 'box.type', 'default': 'rectangular', 'type': str, 'help': 'Box type. Options: cubic, rectangular.', 'choices': ['cubic', 'rectangular']},
+        {'name': 'box.buffer', 'default': 15.0, 'type': float, 'help': 'Box buffer size in Å.'},
+        {'name': 'box.size', 'default': [], 'type': list, 'help': 'Cuboid box size in Å for each dimension (this one will take precedence over box.buffer and box.type). (Example: 40.0 50.0 60.0)'},
     ]
 
     _instance = None
@@ -140,7 +142,7 @@ class ConfigManager:
         for param in ConfigManager.CONFIG_DEFINITION:
             # check tinker_path, amoeba_prm must be different from default and exist
             if param['name'] in ['tinker_path', 'amoeba_prm']:
-                value = getattr(self.config, param['name'].replace('.', '__'))
+                value = reduce(getattr, param['name'].split('.'), self.config)
                 if value == param['default']:
                     logger.error(f"Configuration parameter '{param['name']}' must be set to a valid path, not the default value.")
                     sys.exit(1)
@@ -150,7 +152,7 @@ class ConfigManager:
             # check at least one of protein/nucleic_acid/ligand must be provided, different from default, and exist
             if param['name'].startswith('solutes.'):  
                 try:                  
-                    value = getattr(self.config.solutes, param['name'].split('.')[1])
+                    value = reduce(getattr, param['name'].split('.'), self.config)
                     if value and value != param['default']:
                         for fpath in value:
                             if not os.path.exists(fpath):
@@ -159,6 +161,12 @@ class ConfigManager:
                         has_solute = True
                 except AttributeError:
                     continue
+            # assign valid choices if applicable and check validity
+            if 'choices' in param:
+                value = reduce(getattr, param['name'].split('.'), self.config)
+                if value not in param['choices']:
+                    logger.error(f"Configuration parameter '{param['name']}' has invalid value '{value}'. Valid choices are: {param['choices']}")
+                    sys.exit(1)
         if not has_solute:
             logger.error("At least one valid solute (protein, nucleic acid, or ligand) must be provided.")
             sys.exit(1)
@@ -251,6 +259,8 @@ class ConfigManager:
         defaults = OrderedDict()
         for param in ConfigManager.CONFIG_DEFINITION:
             self._set_by_path(defaults, param['name'].split('.'), param['default'])
+            if "choices" in param:
+                self._set_by_path(defaults, ["choices"] + param['name'].split('.'), param['choices'])
 
         cmd_args = self.parser.parse_args()
 
